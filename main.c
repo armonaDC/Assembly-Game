@@ -1,7 +1,32 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 const int rows = 19;
 const int columns = 29;
+
+void printGamePlay(char array[rows][columns]);
+void initializeGame(char array[rows][columns], int posX, int posY);
+void movePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY);
+
+int main(void) {
+  char game[rows][columns];
+  int playing = 1; //1 means game is ongoing, 0 means game is over
+  int playerPosX = rows / 2 + 1; //starting player x position
+  int playerPosY = columns / 2 + 1; //starting player y position
+  char moveDir; //movement direction
+
+  initializeGame(game, playerPosX, playerPosY);
+
+  while(playing == 1){
+    system("clear");
+    printGamePlay(game);
+    
+    scanf(" %c", &moveDir);
+    movePlayer(game, moveDir, &playerPosX, &playerPosY);
+  }
+  
+  return 0;
+}
 
 void printGamePlay(char array[rows][columns]){
   int i;
@@ -52,24 +77,4 @@ void movePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *pl
     (*playerPosY)++; //moving down is increasing by one row
     game[*playerPosX][*playerPosY] = 't';
   }
-}
-
-int main(void) {
-  char game[rows][columns];
-  int playing = 1; //1 means game is ongoing, 0 means game is over
-  int playerPosX = rows / 2 + 1; //starting player x position
-  int playerPosY = columns / 2 + 1; //starting player y position
-  char moveDir; //movement direction
-
-  initializeGame(game, playerPosX, playerPosY);
-
-  while(playing == 1){
-    system("clear");
-    printGamePlay(game);
-    
-    scanf(" %c", &moveDir);
-    movePlayer(game, moveDir, &playerPosX, &playerPosY);
-  }
-  
-  return 0;
 }
