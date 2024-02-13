@@ -7,6 +7,7 @@ const int columns = 29;
 void printGamePlay(char array[rows][columns]);
 void initializeGame(char array[rows][columns], int posX, int posY);
 void movePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY);
+void Enemy(char game[rows][columns], int playerPosX, int playerPosY);
 
 int main(void) {
   char game[rows][columns];
@@ -14,6 +15,7 @@ int main(void) {
   int playerPosX = rows / 2 + 1; //starting player x position
   int playerPosY = columns / 2 + 1; //starting player y position
   char moveDir; //movement direction
+  unsigned long loopCounter = 0;
 
   initializeGame(game, playerPosX, playerPosY);
 
@@ -23,6 +25,12 @@ int main(void) {
     
     scanf(" %c", &moveDir);
     movePlayer(game, moveDir, &playerPosX, &playerPosY);
+
+    if(loopCounter > 5){
+      Enemy(game, playerPosX, playerPosY);
+    }
+
+    loopCounter++;
   }
   
   return 0;
@@ -69,12 +77,50 @@ void movePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *pl
   }
   if (moveDir == 's'){
     game[*playerPosX][*playerPosY] = '.';
-    (*playerPosX)++; //moving right is increasing by one column
+    (*playerPosX)++; //moving down is increasing by one row
     game[*playerPosX][*playerPosY] = 't';
   }
   if (moveDir == 'd'){
     game[*playerPosX][*playerPosY] = '.';
-    (*playerPosY)++; //moving down is increasing by one row
+    (*playerPosY)++; //moving right is increasing by one column
     game[*playerPosX][*playerPosY] = 't';
   }
+}
+
+void Enemy(char game[rows][columns], int playerPosX, int playerPosY){
+  int i;
+  int j;
+  int enemyExists = 0;
+  int enemySpawnX;
+  int enemySpawnY;
+
+  //check if enemy exists, if not, spawn one
+  for (i = 0; i<rows; i++){
+    for(j = 0; j<columns; j++){
+      if (game[i][j] == 'e'){
+        enemyExists = 1;
+      }
+    }
+  }
+
+  if (enemyExists == 0){
+    if (playerPosX - 7 < 0){
+        enemySpawnX = playerPosX + 7;
+    }
+    else{
+        enemySpawnX = playerPosX - 7;
+    }
+
+    if(playerPosY - 12 < 0){
+      enemySpawnY = playerPosY + 12;
+    }
+    else{
+      enemySpawnY = playerPosY - 12;
+    }
+
+    game[enemySpawnX][enemySpawnY] = 'e';
+  }
+
+
+
 }
