@@ -4,30 +4,34 @@
 const int rows = 19;
 const int columns = 29;
 
-void printGamePlay(char array[rows][columns]);
-void initializeGame(char array[rows][columns], int posX, int posY);
-void movePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY);
-void Enemy(char game[rows][columns], int playerPosX, int playerPosY);
+enum enemyType {BASIC = 0};
+
+void PrintGamePlay(char array[rows][columns]);
+void InitializeGame(char array[rows][columns], int posX, int posY);
+void MovePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY);
+void SpawnEnemy(char game[rows][columns], int playerPosX, int playerPosY, int enemySpawnPos[2], int enemyType);
+void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX, int enemyPosY, int enemyType);
 
 int main(void) {
   char game[rows][columns];
+  int enemySpawnPos[2]; //index 0 will have enemy X position and index 1 will have enemy Y position
   int playing = 1; //1 means game is ongoing, 0 means game is over
   int playerPosX = rows / 2 + 1; //starting player x position
   int playerPosY = columns / 2 + 1; //starting player y position
   char moveDir; //movement direction
   unsigned long loopCounter = 0;
 
-  initializeGame(game, playerPosX, playerPosY);
+  InitializeGame(game, playerPosX, playerPosY);
 
   while(playing == 1){
     system("clear");
-    printGamePlay(game);
+    PrintGamePlay(game);
     
     scanf(" %c", &moveDir);
-    movePlayer(game, moveDir, &playerPosX, &playerPosY);
+    MovePlayer(game, moveDir, &playerPosX, &playerPosY);
 
     if(loopCounter > 5){
-      Enemy(game, playerPosX, playerPosY);
+      SpawnEnemy(game, playerPosX, playerPosY, enemySpawnPos, BASIC); //only needs to spawn one enemy, spawns multiple
     }
 
     loopCounter++;
@@ -36,7 +40,7 @@ int main(void) {
   return 0;
 }
 
-void printGamePlay(char array[rows][columns]){
+void PrintGamePlay(char array[rows][columns]){
   int i;
   int j;
 
@@ -51,7 +55,7 @@ void printGamePlay(char array[rows][columns]){
   }  
 }
 
-void initializeGame(char array[rows][columns], int posX, int posY){
+void InitializeGame(char array[rows][columns], int posX, int posY){
   int i;
   int j;
 
@@ -64,7 +68,9 @@ void initializeGame(char array[rows][columns], int posX, int posY){
   array[posX][posY] = 't';
 }
 
-void movePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY){
+void MovePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY){
+  //FIXME: ADD BOUNDARIES FOR PLAYER MOVEMENT
+
   if (moveDir == 'w'){
     game[*playerPosX][*playerPosY] = '.';
     (*playerPosX)--; //moving up is decreasing by one row
@@ -87,8 +93,30 @@ void movePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *pl
   }
 }
 
-void Enemy(char game[rows][columns], int playerPosX, int playerPosY){
-  int i;
+void SpawnEnemy(char game[rows][columns], int playerPosX, int playerPosY, int enemySpawnPos[2], int enemyType){
+  //type has not been implemented yet
+
+  if (enemyType == BASIC){
+    if (playerPosX - 7 < 0){
+      enemySpawnPos[0] = playerPosX + 7;
+    }
+    else{
+      enemySpawnPos[0] = playerPosX - 7;
+    }
+
+    if(playerPosY - 12 < 0){
+      enemySpawnPos[1] = playerPosY + 12;
+    }
+    else{
+      enemySpawnPos[1] = playerPosY - 12;
+    }
+  }
+
+  game[enemySpawnPos[0]][enemySpawnPos[1]] = 'e';
+}
+
+void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX, int enemyPosY, int enemyType){
+  /*int i;
   int j;
   int enemyExists = 0;
   int enemySpawnX;
@@ -101,26 +129,6 @@ void Enemy(char game[rows][columns], int playerPosX, int playerPosY){
         enemyExists = 1;
       }
     }
-  }
-
-  if (enemyExists == 0){
-    if (playerPosX - 7 < 0){
-        enemySpawnX = playerPosX + 7;
-    }
-    else{
-        enemySpawnX = playerPosX - 7;
-    }
-
-    if(playerPosY - 12 < 0){
-      enemySpawnY = playerPosY + 12;
-    }
-    else{
-      enemySpawnY = playerPosY - 12;
-    }
-
-    game[enemySpawnX][enemySpawnY] = 'e';
-  }
-
-
+  }*/
 
 }
