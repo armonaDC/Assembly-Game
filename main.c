@@ -3,18 +3,21 @@
 
 const int rows = 19;
 const int columns = 29;
+const int MAX_ENEMIES = 100; //number of enemies over the course of the entire game
 
 enum enemyType {BASIC = 0};
 
 void PrintGamePlay(char array[rows][columns]);
 void InitializeGame(char array[rows][columns], int posX, int posY);
 void MovePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY);
-void SpawnEnemy(char game[rows][columns], int playerPosX, int playerPosY, int enemySpawnPos[2], int enemyType);
-void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX, int enemyPosY, int enemyType);
+void SpawnEnemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX[MAX_ENEMIES], int enemyPosY[MAX_ENEMIES], int enemyIndex[MAX_ENEMIES], int enemyType);
+void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX[MAX_ENEMIES], int enemyPosY[MAX_ENEMIES], int enemyIndex[MAX_ENEMIES]);
 
 int main(void) {
   char game[rows][columns];
-  int enemySpawnPos[2]; //index 0 will have enemy X position and index 1 will have enemy Y position
+  int enemyPosX[MAX_ENEMIES]; //each enemy will have its own index in both enemyPos arrays
+  int enemyPosY[MAX_ENEMIES];
+  int enemyIndex[MAX_ENEMIES]; //this array will store every enemy's index
   int playing = 1; //1 means game is ongoing, 0 means game is over
   int playerPosX = rows / 2 + 1; //starting player x position
   int playerPosY = columns / 2 + 1; //starting player y position
@@ -31,7 +34,7 @@ int main(void) {
     MovePlayer(game, moveDir, &playerPosX, &playerPosY);
 
     if(loopCounter > 5){
-      SpawnEnemy(game, playerPosX, playerPosY, enemySpawnPos, BASIC); //only needs to spawn one enemy, spawns multiple
+      SpawnEnemy(game, playerPosX, playerPosY, enemyPosX, enemyPosY, enemyIndex, BASIC); //used for testing spawn logic
     }
 
     loopCounter++;
@@ -93,42 +96,43 @@ void MovePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *pl
   }
 }
 
-void SpawnEnemy(char game[rows][columns], int playerPosX, int playerPosY, int enemySpawnPos[2], int enemyType){
-  //type has not been implemented yet
+void SpawnEnemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX[MAX_ENEMIES], int enemyPosY[MAX_ENEMIES], int enemyIndex[MAX_ENEMIES], int enemyType){
+  int i = 0;
+  int index;
+
+  while(i < MAX_ENEMIES){ //search for first available index in enemyIndex that is 0, then break
+    if(enemyIndex[i] == 0){
+      index = i;
+      break;
+    }
+
+    i++;
+  }
+
+  //enemyIndex[index] = index; //FIXME: this line introduces a bug when enemies are spawned at the same spot an existing enemy is
 
   if (enemyType == BASIC){
     if (playerPosX - 7 < 0){
-      enemySpawnPos[0] = playerPosX + 7;
+      enemyPosX[index] = playerPosX + 7;
     }
     else{
-      enemySpawnPos[0] = playerPosX - 7;
+      enemyPosX[index] = playerPosX - 7;
     }
 
     if(playerPosY - 12 < 0){
-      enemySpawnPos[1] = playerPosY + 12;
+      enemyPosY[index] = playerPosY + 12;
     }
     else{
-      enemySpawnPos[1] = playerPosY - 12;
+      enemyPosY[index] = playerPosY - 12;
     }
   }
 
-  game[enemySpawnPos[0]][enemySpawnPos[1]] = 'e';
+  game[enemyPosX[index]][enemyPosY[index]] = 'e'; //BASIC enemies will be represented using the char 'e'
 }
 
-void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX, int enemyPosY, int enemyType){
-  /*int i;
-  int j;
-  int enemyExists = 0;
-  int enemySpawnX;
-  int enemySpawnY;
+void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX[MAX_ENEMIES], int enemyPosY[MAX_ENEMIES], int enemyIndex[MAX_ENEMIES]){
+  //GOAL: find how many enemies are on the screen, then calculate behavior for each enemy on the next frame
+  //each enemy type are unique chars so no need to pass this in
 
-  //check if enemy exists, if not, spawn one
-  for (i = 0; i<rows; i++){
-    for(j = 0; j<columns; j++){
-      if (game[i][j] == 'e'){
-        enemyExists = 1;
-      }
-    }
-  }*/
 
 }
