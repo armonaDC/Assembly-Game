@@ -4,6 +4,7 @@
 const int rows = 19;
 const int columns = 29;
 const int MAX_ENEMIES = 60; //number of enemies over the course of the entire game
+int playing = 1; //1 means game is ongoing, 0 means game is over
 
 enum enemyType {BASIC = 0};
 
@@ -12,17 +13,17 @@ void InitializeGame(char array[rows][columns], int posX, int posY);
 void MovePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY);
 void SpawnEnemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX[MAX_ENEMIES], int enemyPosY[MAX_ENEMIES], int enemyIndex[MAX_ENEMIES], int enemyType);
 void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX[MAX_ENEMIES], int enemyPosY[MAX_ENEMIES], int enemyIndex[MAX_ENEMIES]);
+void TerminateGame();
 
 int main(void) {
   char game[rows][columns];
   int enemyPosX[MAX_ENEMIES]; //each enemy will have its own index in both enemyPos arrays
   int enemyPosY[MAX_ENEMIES];
-  int enemyIndex[MAX_ENEMIES]; //this array will store every enemy's index
-  int playing = 1; //1 means game is ongoing, 0 means game is over
+  int enemyIndex[MAX_ENEMIES]; //this array will store every enemy's index, dead or alive
   int playerPosX = rows / 2 + 1; //starting player x position
   int playerPosY = columns / 2 + 1; //starting player y position
   char moveDir; //movement direction
-  unsigned long loopCounter = 0;
+  unsigned long long loopCounter = 0;
 
   InitializeGame(game, playerPosX, playerPosY);
 
@@ -37,7 +38,7 @@ int main(void) {
       SpawnEnemy(game, playerPosX, playerPosY, enemyPosX, enemyPosY, enemyIndex, BASIC); //used for testing spawn logic
     }
 
-    loopCounter++;
+    loopCounter++; //used for testing spawn logic
   }
   
   return 0;
@@ -131,9 +132,10 @@ void SpawnEnemy(char game[rows][columns], int playerPosX, int playerPosY, int en
     else{
       enemyPosY[index] = playerPosY - 12;
     }
+
+    game[enemyPosX[index]][enemyPosY[index]] = 'e'; //BASIC enemies will be represented using the char 'e'
   }
 
-  game[enemyPosX[index]][enemyPosY[index]] = 'e'; //BASIC enemies will be represented using the char 'e'
 }
 
 void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPosX[MAX_ENEMIES], int enemyPosY[MAX_ENEMIES], int enemyIndex[MAX_ENEMIES]){
@@ -141,4 +143,14 @@ void Enemy(char game[rows][columns], int playerPosX, int playerPosY, int enemyPo
   //each enemy type are unique chars so no need to pass this in
 
 
+}
+
+void TerminateGame (){
+  if(playing != 1){return;} //if playing != 1 don't do anything
+  else {
+    playing = 0; //this will end the game due to while loop in main()
+
+    system("clear");
+    printf("GG YOU LOSE");
+  }
 }
