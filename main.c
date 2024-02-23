@@ -3,7 +3,7 @@
 
 const int rows = 19;
 const int columns = 29;
-const int MAX_ENEMIES = 100; //number of enemies over the course of the entire game
+const int MAX_ENEMIES = 60; //number of enemies over the course of the entire game
 
 enum enemyType {BASIC = 0};
 
@@ -43,7 +43,7 @@ int main(void) {
   return 0;
 }
 
-void PrintGamePlay(char array[rows][columns]){
+void PrintGamePlay(char array[rows][columns]){ //basic print 2d array function
   int i;
   int j;
 
@@ -58,7 +58,7 @@ void PrintGamePlay(char array[rows][columns]){
   }  
 }
 
-void InitializeGame(char array[rows][columns], int posX, int posY){
+void InitializeGame(char array[rows][columns], int posX, int posY){ //fills 2d game array with '.' and one 't' for the player
   int i;
   int j;
 
@@ -72,26 +72,32 @@ void InitializeGame(char array[rows][columns], int posX, int posY){
 }
 
 void MovePlayer(char game[rows][columns], char moveDir, int *playerPosX, int *playerPosY){
-  //FIXME: ADD BOUNDARIES FOR PLAYER MOVEMENT
+  //boundaries for player movement
 
+  if (*playerPosX == 0 && moveDir == 'w'){return;} //top gameplay boundary
+  if (*playerPosX == (rows - 1) && moveDir == 's'){return;} //bottom gameplay boundary
+  if (*playerPosY == 0 && moveDir == 'a'){return;} //left gameplay boundary
+  if (*playerPosY == (columns - 1) && moveDir == 'd'){return;} //right gameplay boundary
+
+  //movement logic
   if (moveDir == 'w'){
-    game[*playerPosX][*playerPosY] = '.';
-    (*playerPosX)--; //moving up is decreasing by one row
-    game[*playerPosX][*playerPosY] = 't';
+    game[*playerPosX][*playerPosY] = '.'; //replace current player position with '.'
+    (*playerPosX)--; //moving up is decreasing by one row, update player position
+    game[*playerPosX][*playerPosY] = 't'; //put player 't' in new player position
   }
   if (moveDir == 'a'){
     game[*playerPosX][*playerPosY] = '.';
-    (*playerPosY)--; //moving left is decreasing by one column
+    (*playerPosY)--; //moving left is decreasing by one column, update player position
     game[*playerPosX][*playerPosY] = 't';
   }
   if (moveDir == 's'){
     game[*playerPosX][*playerPosY] = '.';
-    (*playerPosX)++; //moving down is increasing by one row
+    (*playerPosX)++; //moving down is increasing by one row, update player position
     game[*playerPosX][*playerPosY] = 't';
   }
   if (moveDir == 'd'){
     game[*playerPosX][*playerPosY] = '.';
-    (*playerPosY)++; //moving right is increasing by one column
+    (*playerPosY)++; //moving right is increasing by one column, update player position
     game[*playerPosX][*playerPosY] = 't';
   }
 }
