@@ -20,8 +20,8 @@ int main(void) {
   int enemyPosX[MAX_ENEMIES]; //each enemy will have its own index in both enemyPos arrays
   int enemyPosY[MAX_ENEMIES];
   int enemyIndex[MAX_ENEMIES]; //this array will store every enemy's index, dead or alive
-  int playerPosX = rows / 2 + 1; //starting player x position
-  int playerPosY = columns / 2 + 1; //starting player y position
+  int playerPosX = rows / 2; //starting player x position
+  int playerPosY = columns / 2; //starting player y position
   char moveDir; //movement direction
   unsigned long long loopCounter = 0;
 
@@ -45,29 +45,37 @@ int main(void) {
 }
 
 void PrintGamePlay(char array[rows][columns]){ //basic print 2d array function
-  int i;
-  int j;
+  int i = 0;
+  int j = 0;
 
-  for (i = 0; i<rows; i++){
-    
-    for(j = 0; j<columns; j++){
+  while(i < rows){
+    j = 0;
+
+    while(j < columns){
       printf("%c", array[i][j]);
+      j++;
     }
-    
+
     printf("\n");
-    
-  }  
+    i++;
+  }
 }
 
 void InitializeGame(char array[rows][columns], int posX, int posY){ //fills 2d game array with '.' and one 't' for the player
-  int i;
-  int j;
+  int i = 0;
+  int j = 0;
 
-  for (i = 0; i<rows; i++){
-    for(j = 0; j<columns; j++){
+  while (i < rows){
+    j = 0;
+
+    while (j < columns){
       array[i][j] = '.';
+      j++;
     }
+
+    i++;
   }
+
 
   array[posX][posY] = 't';
 }
