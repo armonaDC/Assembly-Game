@@ -10,6 +10,7 @@ playerPosY:	.byte 0		# 1 byte int: starting Y position, or column
 moveDir:	.byte 0		# 1 byte char: player input for movement
 period:		.byte '.'	# 1 byte char: a period
 player:		.byte 't'	# 1 byte char: a 't'
+newline:	.asciiz "\n"	# a new line
 loopCounter:	.word 0		# 4 byte int: increment for each frame of gameplay
 	# The next three labels MUST have (MAX_ENEMIES * 1) byte allocated to them
 	# 60 * 1 bytes per int
@@ -23,6 +24,7 @@ game:		.space 551	# 1 byte 2D char array: reserve 551 bytes for 2D game array
 	
 
 .text
+main:
 	#calculate playerPosX and PlayerPosY starting point, then assign
 	lb	$t0, rows		#X coordinate
 	lb	$t1, columns		#Y coordinate
@@ -37,17 +39,61 @@ game:		.space 551	# 1 byte 2D char array: reserve 551 bytes for 2D game array
 	add	$a2, $zero, $t1		#playerPosY
 	jal	InitializeGame
 	
+	#Call PrintGame
+	la	$a0, game		#base address of game array
+	jal	PrintGame
+	
+	
 	li	$v0, 10
 	syscall
+	
+##################################################################################################################################	
+PrintGame:
+	#This function prints the 2D game array to the screen 
+	addi	$t0, $zero, 0		#int i = 0
+	addi	$t1, $zero, 0		#int j = 0
+	lb	$t2, rows		#load # of rows int to $t2
+	lb	$t3, columns		#load # of columns int to $t3
+	add	$t4, $zero, $a0		#$t4 now holds the base address of game, $a0 needs to be used for printing chars
 
+	
+PrintWhile:
+	bge	$t0, $t2, PrintDone	#if i >= rows, loop is done
+	addi	$t1, $zero, 0		# j = 0
+	
+PrintNestWhile:
+	bge	$t1, $t3, PrintNestDone	#if j >= columns, loop is done
+	
+	mul	$t5, $t0, $t3		# $t5 holds addr offset, start with i * (# of col) for row position
+	add	$t5, $t5, $t1		# Add column position to offset
+	add	$t5, $t5, $t4		# Add offset and base array addr for addr of game[i][j] in $t5
+	
+	lb	$a0, 0($t5)		# load char from address into $a0
+	li	$v0, 11			#code for print char on syscall
+	syscall
+	
+	addi	$t1, $t1, 1		# j = j + 1
+	j	PrintNestWhile
+
+PrintNestDone:
+	la	$a0, newline		# load address of newline into $a0
+	li	$v0, 4			# code for print string in syscall
+	
+	addi	$t0, $t0, 1		# i = i + 1
+	j	PrintWhile
+	
+PrintDone:
+	jr	$ra
+
+##################################################################################################################################
 InitializeGame:	
 	#This function puts a '.' in each element of the char array
 	#Then it puts a 't' where the player is in the char array
 	#Utilizes a nested while loop
-	addi	$t0, $zero, 0		#int i
-	addi	$t1, $zero, 0		#int j
-	lb	$t2, rows		#load rows int to $t2
-	lb	$t3, columns		#load columns int to $t3
+	addi	$t0, $zero, 0		#int i = 0
+	addi	$t1, $zero, 0		#int j = 0
+	lb	$t2, rows		#load # of rows int to $t2
+	lb	$t3, columns		#load # of columns int to $t3
 	lb	$t5, period		#load period ascii code into $t5
 	lb	$t6, player
 	
@@ -81,3 +127,4 @@ InitDone:
 	
 	
 	jr	$ra
+##################################################################################################################################
