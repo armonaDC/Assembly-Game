@@ -12,6 +12,7 @@ period:		.byte '.'	# 1 byte char: a period
 player:		.byte 't'	# 1 byte char: a 't'
 newline:	.asciiz "\n"	# a new line
 loopCounter:	.word 0		# 4 byte int: increment for each frame of gameplay
+timeLimit:	.word 28000	# 4 byte int: max number of frames the game will run, at 30fps ~ 15 minutes
 	# The next three labels MUST have (MAX_ENEMIES * 1) byte allocated to them
 	# 60 * 1 bytes per int
 enemyPosX:	.space 60	# 1 byte int array: each enemy will have its own index in both enemyPos arrays
@@ -43,13 +44,155 @@ main:
 	la	$a0, game		#base address of game array
 	jal	PrintGame
 	
+	#sleep for 33 ms leading to ~30 frames / sec
+	addi	$a0, $zero, 33		#33 ms 
+	addi	$v0, $zero, 32		#code for sleep
+	syscall
+	
+	#Call MovePlayer
+	addi	$v0, $zero, 12		#code for read char
+	syscall
+	
+	sb	$v0, moveDir		#assign read char to movedir
+	la	$a1, game		#base address of game array
+	lb	$a2, playerPosX		#player X coordinate
+	lb	$a3, playerPosY		#player Y coordinate
+	jal	MovePlayer
+	
+	#Call PrintGame
+	la	$a0, game		#base address of game array
+	jal	PrintGame
+	
 	
 	li	$v0, 10
 	syscall
 	
+##################################################################################################################################		
+MovePlayer:
+	#First gameplay boundaries will be checked, then movement will occur
+	#Full list of registers during execution of this subroutine
+	#la	$a1, game			#base address of game array
+	#lb	$a2, playerPosX			#player X coordinate
+	#lb	$a3, playerPosY			#player Y coordinate
+	addi	$t0, $zero, 119			#ascii code for 'w'
+	addi	$t1, $zero, 97			#ascii code for 'a'
+	addi	$t2, $zero, 115			#ascii code for 's'
+	addi	$t3, $zero, 100			#ascii code for 'd'
+	lb	$t4, rows			#load # of rows int to $t4
+	lb	$t5, columns			#load # of columns int to $t5
+	lb	$t6, moveDir			#load movedir into $t6
+	
+	addi 	$t4, $t4, -1			#(# of rows) - 1
+	addi 	$t5, $t5, -1			#(# of columns) - 1
+	
+	addi	$sp, $sp, -8			#allocate 8 bytes for the stack
+	sw	$s0, 0($sp)			#store $s0 on stack
+	sw	$s1, 4($sp)			#store $s1 on stack
+	
+	lb	$s0, period			#load period onto $s0
+	lb	$s1, player			#load player onto $s1
+	
+MovePlayerComparison1:				#this label is not used, other than for readability	
+	#The next two lines check for the top gameplay boundary
+	#if(playerPosX == 0 && moveDir == 'w'){return;}
+	bne	$a2, $zero, MovePlayerComparison2	#If PlayerPosX != 0 go to next comparison
+	beq	$t6, $t0, MovePlayerDone		#If movedir is 'w' MovePlayer is done
+	
+MovePlayerComparison2:
+	#Check for bottom gameplay boundary
+	#if(playerPosX == (rows - 1) && moveDir == 's'){return;}
+	bne	$a2, $t4, MovePlayerComparison3 	#If PlayerPosX != max row go to next comparison
+	beq	$t6, $t2, MovePlayerDone		#If movedir is 's' MovePlayer is done
+	
+MovePlayerComparison3:
+	#Check for left gameplay boundary, similar to above
+	bne	$a3, $zero, MovePlayerComparison4	#If PlayerPosY != 0 go to next comparison
+	beq	$t6, $t1, MovePlayerDone		#If movedir is 'a' MovePlayer is done
+	
+MovePlayerComparison4:
+	#Check for right gameplay boundary. similar to above
+	bne	$a3, $zero, MovePlayerLogic		#If PlayerPos Y != max column, go to logic
+	beq	$t6, $t3, MovePlayerDone		#If movedir is 'd' MovePlayer is done
+
+MovePlayerLogic:
+	addi 	$t4, $t4, 1				#t4 now holds # of rows
+	addi 	$t5, $t5, 1				#t5 now holds # of oclumns
+
+	bne	$t6, $t0, MovePlayerDir2		#if movedir is not 'w' move to next direction logic
+	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
+	add	$t7, $t7, $a1				#add base address to offset
+	sb	$s0, 0($t7)				#store '.' where player position is
+	
+	addi 	$a2, $a2, -1				#moving up with 'w' is decreasing by one row
+	#Recalculate array position for new player position
+	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
+	add	$t7, $t7, $a1				#add base address to offset
+	sb	$s1, 0($t7)				#store 't' where player position is
+	
+	j	MovePlayerDone
+	
+MovePlayerDir2:
+	bne	$t6, $t1, MovePlayerDir3		#if movedir is not 'a' move to next direction logic
+	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
+	add	$t7, $t7, $a1				#add base address to offset
+	sb	$s0, 0($t7)				#store '.' where player position is
+	
+	addi 	$a3, $a3, -1				#moving left with 'a' is decreasing by one column
+	#Recalculate array position for new player position
+	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
+	add	$t7, $t7, $a1				#add base address to offset
+	sb	$s1, 0($t7)				#store 't' where player position is
+	
+	j	MovePlayerDone
+	
+MovePlayerDir3:
+	bne	$t6, $t2, MovePlayerDir4		#if movedir is not 's' move to next direction logic
+	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
+	add	$t7, $t7, $a1				#add base address to offset
+	sb	$s0, 0($t7)				#store '.' where player position is
+	
+	addi 	$a2, $a2, 1				#moving down with 's' is increasing by one row
+	#Recalculate array position for new player position
+	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
+	add	$t7, $t7, $a1				#add base address to offset
+	sb	$s1, 0($t7)				#store 't' where player position is
+	
+	j	MovePlayerDone
+	
+MovePlayerDir4:
+	bne	$t6, $t3, MovePlayerDir3		#if movedir is not 'd' move to next direction logic
+	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
+	add	$t7, $t7, $a1				#add base address to offset
+	sb	$s0, 0($t7)				#store '.' where player position is
+	
+	addi 	$a3, $a3, 1				#moving right with 'd' is increasing by one column
+	#Recalculate array position for new player position
+	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
+	add	$t7, $t7, $a1				#add base address to offset
+	sb	$s1, 0($t7)				#store 't' where player position is
+	
+	j	MovePlayerDone
+		
+MovePlayerDone:
+	#restore $s registers from stack
+	lw	$s1, 4($sp)				#load $s1 from stack
+	lw	$s0, 0($sp)				#load $s0 from stack
+	addi 	$sp, $sp, 8				#place stack pointer back to its original position
+	
+	jr	$ra
 ##################################################################################################################################	
 PrintGame:
 	#This function prints the 2D game array to the screen 
+	#Full list of registers during execution of this subroutine
+	#la	$a0, game		#base address of game array
 	addi	$t0, $zero, 0		#int i = 0
 	addi	$t1, $zero, 0		#int j = 0
 	lb	$t2, rows		#load # of rows int to $t2
@@ -91,6 +234,10 @@ InitializeGame:
 	#This function puts a '.' in each element of the char array
 	#Then it puts a 't' where the player is in the char array
 	#Utilizes a nested while loop
+	#Full list of registers during execution of this subroutine
+	#la	$a0, game		#base address of game array
+	#add	$a1, $zero, $t0		#playerPosX
+	#add	$a2, $zero, $t1		#playerPosY
 	addi	$t0, $zero, 0		#int i = 0
 	addi	$t1, $zero, 0		#int j = 0
 	lb	$t2, rows		#load # of rows int to $t2
@@ -121,10 +268,10 @@ InitNestDone:
 InitDone:
 
 	#Have not verified that the player is spawned at the correct location
-	mul	$t4, $a1, $t3		#array offset for player position, Row * (# of columns)
-	add	$t4, $t4, $a2		#add columns to offset
+	mul	$t4, $a1, $t3		#array offset for player position, Row(playerPosX) * (# of columns)
+	add	$t4, $t4, $a2		#add columns(playerPosY) to offset
 	add	$t4, $t4, $a0		#add base address to offset
-	sb	$t6, 0($t4)
+	sb	$t6, 0($t4)		#store player char in game array
 	
 	
 	jr	$ra
