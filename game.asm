@@ -78,6 +78,7 @@ PrintNestWhile:
 PrintNestDone:
 	la	$a0, newline		# load address of newline into $a0
 	li	$v0, 4			# code for print string in syscall
+	syscall				#print string
 	
 	addi	$t0, $t0, 1		# i = i + 1
 	j	PrintWhile
