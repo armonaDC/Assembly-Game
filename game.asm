@@ -22,7 +22,6 @@ enemyIndex:	.space 60	# 1 byte int array: this array will store each enemy's ind
 	# 19 * 29 = 551 bytes, 1 byte per char
 game:		.space 551	# 1 byte 2D char array: reserve 551 bytes for 2D game array
 	
-	
 
 .text
 main:
@@ -267,12 +266,10 @@ InitNestDone:
 	
 InitDone:
 
-	#Have not verified that the player is spawned at the correct location
 	mul	$t4, $a1, $t3		#array offset for player position, Row(playerPosX) * (# of columns)
 	add	$t4, $t4, $a2		#add columns(playerPosY) to offset
 	add	$t4, $t4, $a0		#add base address to offset
 	sb	$t6, 0($t4)		#store player char in game array
-	
 	
 	jr	$ra
 ##################################################################################################################################
