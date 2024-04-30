@@ -24,6 +24,7 @@ playerPosY:	.byte 0			# 1 byte int: starting Y position, or column
 moveDir:	.byte 0			# 1 byte char: player input for movement
 period:		.byte '.'		# 1 byte char: a period
 player:		.byte 't'		# 1 byte char: a 't'
+baseEnemy:	.byte 'e'		# 1 byte char: 'e'
 newline:	.asciiz "\n"		# a new line
 demo:		.asciiz "Demo Complete! \n\n"	#Demonstration of grandchild function
 loopCounter:	.word 0			# 4 byte int: increment for each frame of gameplay
@@ -34,16 +35,12 @@ enemyPosX:	.space 60		# 1 byte int array: each enemy will have its own index in 
 enemyPosY:	.space 60		# 1 byte int array
 enemyIndex:	.space 60		# 1 byte int array: this array will store each enemy's index, dead or alive 
 	# 2D game array MUST have (rows * columns) bytes allocated to it
-	# 19 * 29 = 551 bytes, 1 byte per char
-game:		.space 551		# 1 byte 2D char array: reserve 551 bytes for 2D game array
+	# 32 * 32 = 551 bytes, 1 byte per char
+game:		.space 1024		# 1 byte 2D char array: reserve 1024 bytes for 2D game array
 
 
 .text
 main:
-	la	$t7, display
-	li	$t6, 0x00FF00FF
-	sw	$t6, 0($t7)
-	
 	#calculate playerPosX and PlayerPosY starting point, then assign
 	lb	$t0, rows		#X coordinate
 	lb	$t1, columns		#Y coordinate
@@ -216,7 +213,11 @@ PrintGame:
 	lb	$t2, rows		#load # of rows int to $t2
 	lb	$t3, columns		#load # of columns int to $t3
 	add	$t4, $zero, $a0		#$t4 now holds the base address of game, $a0 needs to be used for printing chars
-
+	
+	addi	$sp, $sp, -12		#allocate 12 bytes on stack
+	sw	$s0, 0($sp)		#store s0 - s2 on stack
+	sw	$s1, 4($sp)
+	sw	$s2, 8($sp)
 	
 PrintWhile:
 	bge	$t0, $t2, PrintDone	#if i >= rows, loop is done
@@ -244,7 +245,46 @@ PrintNestDone:
 	addi	$t0, $t0, 1		# i = i + 1
 	j	PrintWhile
 	
+	#Portion below is for bitmap display
+	addi	$t0, $zero, 0		#int i = 0
+	addi	$t1, $zero, 0		#int j = 0
+	#lb	$t2, rows		#load # of rows int to $t2
+	#lb	$t3, columns		#load # of columns int to $t3
+	la	$t4, display		# load base address of display into $t4
+	lw	$t5, backgroundColor	#load background color into $t5
+	lw	$t6, playerColor	#load player color into $t6
+	lw	$t7, baseEnemyColor	#load basic enemy color into $t7
+	lw	$s0, period		#load '.' into $s0
+	lw	$s1, player		#load 't' into $s1
+	lw	$s2, baseEnemy		#load 'e' into $s2
+	#Likely will need more registers to implement the display
+	
+DisplayWhile:
+	bge	$t0, $t2, PrintDone		#if i >= rows, loop is done, use same label to indicate the end of the function
+	addi	$t1, $zero, 0			# j = 0
+	
+	DisplayNestWhile:
+	bge	$t1, $t3, DisplayNestDone	#if j >= columns, loop is done
+	
+	
+	# this is where the code goes to read existing 2d array, reading the char and correlating it to a 
+	# color on the bitmap display, so the bitmap would read from the 'real' array to provide visuals
+	
+	
+	addi	$t1, $t1, 1		# j = j + 1
+	j	DisplayNestWhile
+	
+DisplayNestDone:
+	
+	addi	$t0, $t0, 1		# i = i + 1
+	j	DisplayWhile
+	
 PrintDone:
+	lw	$s2, 8($sp)		#restore s0 - s2 from stack
+	lw	$s1, 4($sp)
+	lw	$s0, 0($sp)		
+	addi	$sp, $sp, 12		#deallocate 12 bytes on stack
+	
 	jr	$ra
 
 ##################################################################################################################################
