@@ -1,30 +1,49 @@
 .data
+	#INTENDED BITMAP DISPLAY SETTINGS
+	#Unit width: 16
+	#Unit height: 16
+	#Display width: 512
+	#Display height: 512
+	#Base address 0x10010000 (static data)
+	#This creates a 32 x 32 pixel playable area
+	
+display:	.space 0x1000		# 32 x 32 pixels of 4 byte integers
+backgroundColor:.word 0x00323232	# dark gray background color for display
+playerColor:	.word 0x00FF00FF	# purple color for player
+baseEnemyColor:	.word 0x00FF0000	# red color for basic enemy
+
 	#integers below may only be stored with one byte as it does not need
 	#more than 8 bits to represent the int
-playing: 	.byte 1		# 1 byte int: is the game running? 1 = yes
-rows: 		.byte 19	# 1 byte int: rows for game array
-columns: 	.byte 29	# 1 byte int: columns for game array
-MAX_ENEMIES: 	.byte 60	# 1 byte int: max number of enemies for the game
-playerPosX:	.byte 0		# 1 byte int: starting X position, or row
-playerPosY:	.byte 0		# 1 byte int: starting Y position, or column
-moveDir:	.byte 0		# 1 byte char: player input for movement
-period:		.byte '.'	# 1 byte char: a period
-player:		.byte 't'	# 1 byte char: a 't'
-newline:	.asciiz "\n"	# a new line
-loopCounter:	.word 0		# 4 byte int: increment for each frame of gameplay
-timeLimit:	.word 28000	# 4 byte int: max number of frames the game will run, at 30fps ~ 15 minutes
+
+playing: 	.byte 1			# 1 byte int: is the game running? 1 = yes
+rows: 		.byte 32		# 1 byte int: rows for game array
+columns: 	.byte 32		# 1 byte int: columns for game array
+MAX_ENEMIES: 	.byte 60		# 1 byte int: max number of enemies for the game
+playerPosX:	.byte 0			# 1 byte int: starting X position, or row
+playerPosY:	.byte 0			# 1 byte int: starting Y position, or column
+moveDir:	.byte 0			# 1 byte char: player input for movement
+period:		.byte '.'		# 1 byte char: a period
+player:		.byte 't'		# 1 byte char: a 't'
+newline:	.asciiz "\n"		# a new line
+demo:		.asciiz "Demo Complete! \n\n"	#Demonstration of grandchild function
+loopCounter:	.word 0			# 4 byte int: increment for each frame of gameplay
+timeLimit:	.word 28000		# 4 byte int: max number of frames the game will run, at 30fps ~ 15 minutes
 	# The next three labels MUST have (MAX_ENEMIES * 1) byte allocated to them
 	# 60 * 1 bytes per int
-enemyPosX:	.space 60	# 1 byte int array: each enemy will have its own index in both enemyPos arrays
-enemyPosY:	.space 60	# 1 byte int array
-enemyIndex:	.space 60	# 1 byte int array: this array will store each enemy's index, dead or alive 
+enemyPosX:	.space 60		# 1 byte int array: each enemy will have its own index in both enemyPos arrays
+enemyPosY:	.space 60		# 1 byte int array
+enemyIndex:	.space 60		# 1 byte int array: this array will store each enemy's index, dead or alive 
 	# 2D game array MUST have (rows * columns) bytes allocated to it
 	# 19 * 29 = 551 bytes, 1 byte per char
-game:		.space 551	# 1 byte 2D char array: reserve 551 bytes for 2D game array
-	
+game:		.space 551		# 1 byte 2D char array: reserve 551 bytes for 2D game array
+
 
 .text
 main:
+	la	$t7, display
+	li	$t6, 0x00FF00FF
+	sw	$t6, 0($t7)
+	
 	#calculate playerPosX and PlayerPosY starting point, then assign
 	lb	$t0, rows		#X coordinate
 	lb	$t1, columns		#Y coordinate
@@ -233,6 +252,7 @@ InitializeGame:
 	#This function puts a '.' in each element of the char array
 	#Then it puts a 't' where the player is in the char array
 	#Utilizes a nested while loop
+	#This function also initlizes bitmap display with background color and player pixel
 	#Full list of registers during execution of this subroutine
 	#la	$a0, game		#base address of game array
 	#add	$a1, $zero, $t0		#playerPosX
@@ -242,7 +262,14 @@ InitializeGame:
 	lb	$t2, rows		#load # of rows int to $t2
 	lb	$t3, columns		#load # of columns int to $t3
 	lb	$t5, period		#load period ascii code into $t5
-	lb	$t6, player
+	lb	$t6, player		#char representing the player
+	
+	addi	$sp, $sp, -12			#allocate 12 bytes for the stack
+	sw	$s0, 0($sp)			#store $s0 on stack
+	sw	$s1, 4($sp)			#store $s1 on stack
+	sw	$ra, 8($sp)			#store $ra on stack
+	
+	jal	GrandChildDemo			#go to grandchild function demo
 	
 InitWhile:				#start of initialization while loop for populating array
 	bge	$t0, $t2, InitDone	#if i >= rows, loop is done
@@ -265,11 +292,63 @@ InitNestDone:
 	j	InitWhile
 	
 InitDone:
-
 	mul	$t4, $a1, $t3		#array offset for player position, Row(playerPosX) * (# of columns)
 	add	$t4, $t4, $a2		#add columns(playerPosY) to offset
 	add	$t4, $t4, $a0		#add base address to offset
 	sb	$t6, 0($t4)		#store player char in game array
 	
+	#Portion below is for bitmap display initialization
+	
+	addi	$t0, $zero, 0		# i = 0 to prep for bitmap display initialization
+	addi	$t1, $zero, 0		# j = 0
+	#lb	$t2, rows		#load # of rows int to $t2
+	#lb	$t3, columns		#load # of columns int to $t3
+	#lb	$t5, period		#load period ascii code into $t5
+	#lb	$t6, player		#char representing the player
+	la	$t7, display		#base address of bitmap display
+	lw	$s0, backgroundColor	#load background color into $s0
+	lb	$s1, playerColor	#load player color into $s1
+	
+InitDisplayWhile:				#First loop
+	bge	$t0, $t2, InitDisplayDone	#if i >= rows, loop is done
+	addi 	$t1, $zero, 0			# j = 0
+	
+	InitDisplayNestWhile:			#Start of nested while loop
+	bge	$t1, $t3, InitDisplayNestDone	#if j >= columns, loop is done
+	
+	mul	$t4, $t0, $t3		#$t4 will hold array offset, each int is 4 bytes. Start by finding addr for the row i is at (Row * (# of col))
+	add	$t4, $t4, $t1		#add j to $t4, again each int is 4 bytes.
+	sll	$t4, $t4, 2		# shift left logical to multiply by 4, due to int size
+	add	$t4, $t4, $t7		#add base address of display to offset
+	
+	sw	$s0, 0($t4)		#assign display[i][j] = background color
+	  
+	addi	$t1, $t1, 1 		# j = j + 1
+	j	InitDisplayNestWhile
+	
+InitDisplayNestDone:
+	addi	$t0, $t0, 1		# i = i + 1
+	j	InitDisplayWhile
+	
+InitDisplayDone:
+	lw	$ra, 8($sp)			#restore $ra from stack
+	lw	$s1, 4($sp)			#restore $s1 from stack
+	lw	$s0, 0($sp)			#restore $s0 from stack
+	addi	$sp, $sp, 12			#deallocate 8 bytes from stack
 	jr	$ra
+##################################################################################################################################
+GrandChildDemo:
+	addi	$sp, $sp, -8		#allocate 8 bytes for the stack
+	sw	$a0, 0($sp)		#store $a0 on stack
+	sw	$v0, 4($sp)		#store $v0 on stack
+	
+	la	$a0, demo		#load demo string into $a0
+	li	$v0, 4			#$v0 code for print string
+	syscall
+	
+	lw	$v0, 4($sp)		#restore $v0 from stack
+	lw	$a0, 0($sp)		#restore $a0 from stack
+	addi	$sp, $sp, 8		#deallocate 8 bytes from stack
+	
+	jr	$ra			#jump back without leaving a trace
 ##################################################################################################################################
