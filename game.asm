@@ -59,6 +59,12 @@ main:
 	la	$a0, game		#base address of game array
 	jal	PrintGame
 	
+	
+	lw	$t7, loopCounter	#load loopCounter or i from memory in preparation for loop
+	MainLoop:
+	bge	$t7, 100, MainDone	# if i >= 100 loop is done, 50 is arbitrary for now
+	sw	$t7, loopCounter	#store loopCounter or i to memory after comparison
+	
 	#sleep for 33 ms leading to ~30 frames / sec
 	addi	$a0, $zero, 33		#33 ms 
 	addi	$v0, $zero, 32		#code for sleep
@@ -78,7 +84,11 @@ main:
 	la	$a0, game		#base address of game array
 	jal	PrintGame
 	
+	lw	$t7, loopCounter	#load loopCounter or i from memory
+	addi	$t7, $t7, 1		#increment i = i + 1
+	j	MainLoop
 	
+	MainDone:
 	li	$v0, 10
 	syscall
 	
@@ -140,6 +150,7 @@ MovePlayerLogic:
 	sb	$s0, 0($t7)				#store '.' where player position is
 	
 	addi 	$a2, $a2, -1				#moving up with 'w' is decreasing by one row
+	sb	$a2, playerPosX				#store new player X position in memory
 	#Recalculate array position for new player position
 	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
 	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
@@ -156,6 +167,7 @@ MovePlayerDir2:
 	sb	$s0, 0($t7)				#store '.' where player position is
 	
 	addi 	$a3, $a3, -1				#moving left with 'a' is decreasing by one column
+	sb	$a3, playerPosY				#store new player Y position in memory
 	#Recalculate array position for new player position
 	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
 	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
@@ -172,6 +184,7 @@ MovePlayerDir3:
 	sb	$s0, 0($t7)				#store '.' where player position is
 	
 	addi 	$a2, $a2, 1				#moving down with 's' is increasing by one row
+	sb	$a2, playerPosX				#store new player X position in memory
 	#Recalculate array position for new player position
 	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
 	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
@@ -188,6 +201,7 @@ MovePlayerDir4:
 	sb	$s0, 0($t7)				#store '.' where player position is
 	
 	addi 	$a3, $a3, 1				#moving right with 'd' is increasing by one column
+	sb	$a3, playerPosY				#store new player Y position in memory
 	#Recalculate array position for new player position
 	mul	$t7, $a2, $t5				#array offset for player position, Row(playerPosX) * (# of columns)
 	add	$t7, $t7, $a3				#add columns(playerPosY) to offset
@@ -214,10 +228,13 @@ PrintGame:
 	lb	$t3, columns		#load # of columns int to $t3
 	add	$t4, $zero, $a0		#$t4 now holds the base address of game, $a0 needs to be used for printing chars
 	
-	addi	$sp, $sp, -12		#allocate 12 bytes on stack
+	addi	$sp, $sp, -24		#allocate 12 bytes on stack
 	sw	$s0, 0($sp)		#store s0 - s2 on stack
 	sw	$s1, 4($sp)
 	sw	$s2, 8($sp)
+	sw	$s3, 12($sp)
+	sw	$s4, 16($sp)
+	sw	$s5, 20($sp)
 	
 PrintWhile:
 	bge	$t0, $t2, PrintDone	#if i >= rows, loop is done
@@ -245,6 +262,7 @@ PrintNestDone:
 	addi	$t0, $t0, 1		# i = i + 1
 	j	PrintWhile
 	
+PrintDone:
 	#Portion below is for bitmap display
 	addi	$t0, $zero, 0		#int i = 0
 	addi	$t1, $zero, 0		#int j = 0
@@ -254,23 +272,38 @@ PrintNestDone:
 	lw	$t5, backgroundColor	#load background color into $t5
 	lw	$t6, playerColor	#load player color into $t6
 	lw	$t7, baseEnemyColor	#load basic enemy color into $t7
-	lw	$s0, period		#load '.' into $s0
-	lw	$s1, player		#load 't' into $s1
-	lw	$s2, baseEnemy		#load 'e' into $s2
+	lb	$s0, period		#load '.' into $s0
+	lb	$s1, player		#load 't' into $s1
+	lb	$s2, baseEnemy		#load 'e' into $s2
+	# s3 for offset calc
+	lb	$s4, playerPosX 	#for posX
+	lb	$s5, playerPosY 	#for posY
 	#Likely will need more registers to implement the display
 	
 DisplayWhile:
-	bge	$t0, $t2, PrintDone		#if i >= rows, loop is done, use same label to indicate the end of the function
+	bge	$t0, $t2, PrintDisplayDone	#if i >= rows, loop is done
 	addi	$t1, $zero, 0			# j = 0
 	
 	DisplayNestWhile:
 	bge	$t1, $t3, DisplayNestDone	#if j >= columns, loop is done
 	
-	
 	# this is where the code goes to read existing 2d array, reading the char and correlating it to a 
 	# color on the bitmap display, so the bitmap would read from the 'real' array to provide visuals
+	####
+
+	mul	$s3, $t0, $t3		#$s3 will hold array offset, each int is 4 bytes. Start by finding addr for the row i is at (Row * (# of col))
+	add	$s3, $s3, $t1		#add j to $s3, again each int is 4 bytes.
+	sll	$s3, $s3, 2		# shift left logical to multiply by 4, due to int size
+	add	$s3, $s3, $t4		#add base address of display to offset
 	
+	sw	$t5, 0($s3)			#overwrite all pixels to background color
+	bne	$t0, $s4, skipPlayerChar	#if i != posX skip
+	bne	$t1, $s5, skipPlayerChar	#if j != posY skip
+
+	sw	$t6, 0($s3)			#assign where the 't' char is with the player color on bitmap
 	
+	skipPlayerChar: 
+	####
 	addi	$t1, $t1, 1		# j = j + 1
 	j	DisplayNestWhile
 	
@@ -279,11 +312,14 @@ DisplayNestDone:
 	addi	$t0, $t0, 1		# i = i + 1
 	j	DisplayWhile
 	
-PrintDone:
+PrintDisplayDone:
+	sw	$s5, 20($sp)
+	sw	$s4, 16($sp)
+	lw	$s3, 12($sp)
 	lw	$s2, 8($sp)		#restore s0 - s2 from stack
 	lw	$s1, 4($sp)
 	lw	$s0, 0($sp)		
-	addi	$sp, $sp, 12		#deallocate 12 bytes on stack
+	addi	$sp, $sp, 24		#deallocate 12 bytes on stack
 	
 	jr	$ra
 
